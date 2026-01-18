@@ -24,39 +24,45 @@ class IngredientViewModel @Inject constructor(
     private val repository: RecipeRepository
 ) : ViewModel() {
 
-    private val _ingredients = MutableStateFlow<List<Ingredient>>(emptyList())
-    val ingredients: StateFlow<List<Ingredient>> = _ingredients.asStateFlow()
+    data class IngredientUiState(
+        val id: String,
+        val name: String,
+        @androidx.annotation.DrawableRes val iconRes: Int? = null,
+        val isSelected: Boolean = false
+    )
 
-    private val _selectedIngredients = MutableStateFlow<Set<Ingredient>>(emptySet())
-    val selectedIngredients: StateFlow<Set<Ingredient>> = _selectedIngredients.asStateFlow()
+    private val _ingredients = MutableStateFlow<List<IngredientUiState>>(emptyList())
+    val ingredients: StateFlow<List<IngredientUiState>> = _ingredients.asStateFlow()
 
     init {
         // Mock data
         _ingredients.value = listOf(
-            Ingredient(1, "Yumurta"),
-            Ingredient(2, "Süt"),
-            Ingredient(3, "Tavuk"),
-            Ingredient(4, "Peynir"),
-            Ingredient(5, "Domates"),
-            Ingredient(6, "Soğan"),
-            Ingredient(7, "Patates"),
-            Ingredient(8, "Prinç"),
-            Ingredient(9, "Makarna"),
-            Ingredient(10, "Tereyağı")
+            IngredientUiState("1", "Yumurta"),
+            IngredientUiState("2", "Süt"),
+            IngredientUiState("3", "Tavuk"),
+            IngredientUiState("4", "Peynir"),
+            IngredientUiState("5", "Domates"),
+            IngredientUiState("6", "Soğan"),
+            IngredientUiState("7", "Patates"),
+            IngredientUiState("8", "Pirinç"),
+            IngredientUiState("9", "Makarna"),
+            IngredientUiState("10", "Tereyağı")
         )
     }
 
-    fun toggleIngredientSelection(ingredient: Ingredient) {
-        _selectedIngredients.update { currentSelection ->
-            if (currentSelection.contains(ingredient)) {
-                currentSelection - ingredient
-            } else {
-                currentSelection + ingredient
+    fun toggleIngredientSelection(id: String) {
+        _ingredients.update { currentList ->
+            currentList.map { item ->
+                if (item.id == id) {
+                    item.copy(isSelected = !item.isSelected)
+                } else {
+                    item
+                }
             }
         }
     }
 
-    private val _recipeSearchState = MutableStateFlow<Resource<List<Recipe>>>(Resource.Loading(null)) // Start with null or initial state
+    private val _recipeSearchState = MutableStateFlow<Resource<List<Recipe>>>(Resource.Loading(null))
     val recipeSearchState: StateFlow<Resource<List<Recipe>>> = _recipeSearchState.asStateFlow()
 
     private val ingredientTranslation = mapOf(
@@ -67,15 +73,18 @@ class IngredientViewModel @Inject constructor(
         "Domates" to "tomato",
         "Soğan" to "onion",
         "Patates" to "potato",
-        "Prinç" to "rice",
+        "Pirinç" to "rice",
         "Makarna" to "pasta",
         "Tereyağı" to "butter"
     )
 
     fun searchRecipes() {
-        val selectedNames = _selectedIngredients.value.joinToString(separator = ",") { 
-            ingredientTranslation[it.name] ?: it.name 
-        }
+        val selectedNames = _ingredients.value
+            .filter { it.isSelected }
+            .joinToString(separator = ",") {
+                ingredientTranslation[it.name] ?: it.name
+            }
+        
         if (selectedNames.isBlank()) return
 
         viewModelScope.launch {
@@ -97,17 +106,16 @@ class IngredientViewModel @Inject constructor(
     }
 
     val favoriteRecipes: StateFlow<List<Recipe>> = repository.getFavorites()
-        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun toggleFavorite(detail: com.mehmetalican.fridgechef.domain.model.RecipeDetail) {
         viewModelScope.launch {
-            // Reconstruct Recipe object from Detail for saving
             val recipe = Recipe(
                 id = detail.id,
                 title = detail.title,
                 image = detail.image,
                 usedIngredientCount = 0,
-                missedIngredientCount = 0, // Details endpoint doesn't return these counts directly corresponding to search, default 0
+                missedIngredientCount = 0,
                 likes = 0
             )
             repository.toggleFavorite(recipe)
@@ -116,6 +124,6 @@ class IngredientViewModel @Inject constructor(
 
     fun isFavorite(id: Int): StateFlow<Boolean> {
          return repository.isFavorite(id)
-             .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), false)
+             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     }
 }
