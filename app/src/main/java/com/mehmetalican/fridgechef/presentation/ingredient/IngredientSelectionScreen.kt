@@ -29,7 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.mehmetalican.fridgechef.domain.model.Ingredient
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.rounded.Kitchen
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 
@@ -118,7 +118,7 @@ fun IngredientCard(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Rounded.Kitchen, // Using Kitchen as default
+                    imageVector = Icons.Default.Home, // Fallback to standard icon
                     contentDescription = state.name,
                     modifier = Modifier.size(48.dp),
                     tint = contentColor
