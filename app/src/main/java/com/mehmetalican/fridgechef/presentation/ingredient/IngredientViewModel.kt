@@ -21,7 +21,8 @@ import kotlinx.coroutines.flow.SharingStarted
 
 @HiltViewModel
 class IngredientViewModel @Inject constructor(
-    private val repository: RecipeRepository
+    private val repository: RecipeRepository,
+    private val translationManager: com.mehmetalican.fridgechef.domain.manager.TranslationManager
 ) : ViewModel() {
 
     data class IngredientUiState(
@@ -100,7 +101,28 @@ class IngredientViewModel @Inject constructor(
     fun getRecipeDetails(id: Int) {
         viewModelScope.launch {
             repository.getRecipeDetail(id).collect { result ->
-                _recipeDetailState.value = result
+                if (result is Resource.Success && result.data != null) {
+                    val detail = result.data
+                    // Translate instructions
+                     val translatedInstructions = translationManager.translate(detail.instructions)
+                    
+                    // Translate steps (can be many, so simpler loop or join-split might be better to save calls, but loop is safer)
+                    // Optimisation: Join steps with specific delimiter, translate once, split back.
+                    // But for safety let's do one big block or item by item.
+                    // Just 2 calls: Instructions and Title/Summary if needed.
+                    val translatedSteps = detail.steps.map { step ->
+                        translationManager.translate(step)
+                    }
+
+                    _recipeDetailState.value = Resource.Success(
+                        detail.copy(
+                            instructions = translatedInstructions,
+                            steps = translatedSteps
+                        )
+                    )
+                } else {
+                    _recipeDetailState.value = result
+                }
             }
         }
     }

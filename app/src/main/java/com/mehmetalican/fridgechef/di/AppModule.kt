@@ -29,4 +29,10 @@ object AppModule {
             "fridge_chef_db"
         ).build()
     }
+
+    @Provides
+    @Singleton
+    fun provideTranslationManager(): com.mehmetalican.fridgechef.domain.manager.TranslationManager {
+        return com.mehmetalican.fridgechef.data.manager.GoogleTranslationManager()
+    }
 }
